@@ -519,20 +519,53 @@ function updatePips(){ for(let i=0;i<5;i++) $('p'+i).classList.toggle('on',i<ope
 // ─────────────────────────────────────────────────────────
 // AMBIENT MUSIC (Web Audio — no file needed)
 // ─────────────────────────────────────────────────────────
-let actx, gain, musicOn=false;
-$('music-btn').addEventListener('click',()=>{
-  if(!actx){
-    actx = new(window.AudioContext||window.webkitAudioContext)();
-    gain = actx.createGain(); gain.gain.value=0; gain.connect(actx.destination);
-    [[220,.044],[277.18,.031],[329.63,.024],[369.99,.019],[440,.014]].forEach(([f,g])=>{
-      const o=actx.createOscillator(), gn=actx.createGain();
-      o.type='sine'; o.frequency.value=f; gn.gain.value=g;
-      o.connect(gn); gn.connect(gain); o.start();
-    });
+// ─────────────────────────────────────────────────────────
+// MUSIC (real audio + smooth fade)
+// ─────────────────────────────────────────────────────────
+const audio = new Audio('music.mp3'); // or 'audio/music.mp3' if you use a folder
+audio.loop = true;
+
+let fadeInterval = null;
+let musicOn = false;
+
+function fadeIn() {
+  clearInterval(fadeInterval);
+  audio.volume = 0;
+  audio.play().catch(() => {});
+  
+  fadeInterval = setInterval(() => {
+    if (audio.volume < 0.6) {
+      audio.volume += 0.02;
+    } else {
+      audio.volume = 0.6;
+      clearInterval(fadeInterval);
+    }
+  }, 100);
+}
+
+function fadeOut() {
+  clearInterval(fadeInterval);
+  
+  fadeInterval = setInterval(() => {
+    if (audio.volume > 0.02) {
+      audio.volume -= 0.02;
+    } else {
+      audio.volume = 0;
+      audio.pause();
+      clearInterval(fadeInterval);
+    }
+  }, 100);
+}
+
+$('music-btn').addEventListener('click', () => {
+  if (!musicOn) {
+    fadeIn();
+    $('music-btn').classList.add('on');
+  } else {
+    fadeOut();
+    $('music-btn').classList.remove('on');
   }
-  musicOn=!musicOn;
-  gain.gain.linearRampToValueAtTime(musicOn?.52:0, actx.currentTime+1.8);
-  $('music-btn').classList.toggle('on',musicOn);
+  musicOn = !musicOn;
 });
 </script>
 </body>
